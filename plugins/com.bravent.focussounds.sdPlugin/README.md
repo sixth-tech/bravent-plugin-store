@@ -1,4 +1,4 @@
-﻿# Bravent Ambient Sounds v1.1.0
+# Bravent Ambient Sounds v1.1.1
 
 Ambient focus-sound plugin for Bravent Rhythm Deck.
 
@@ -44,3 +44,4 @@ Ambient focus-sound plugin for Bravent Rhythm Deck.
 - Custom volume
 - Background color
 - Background opacity
+

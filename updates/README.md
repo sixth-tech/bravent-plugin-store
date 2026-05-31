@@ -1,32 +1,29 @@
-# Updates Directory
+# Bravent Plugin Update Feed
 
-Contains the auto-update manifest used by Bravent Hub to check for new plugin versions.
+This folder is the update feed for Bravent plugins.
 
-## manifest.json
+## Published / Ready Plugins
 
-This file lists all available plugins with their:
+### Bravent Operation Flow+
+- Plugin ID: com.bravent.operationflowplus.sdPlugin
+- Short key: ofp
+- Channel: stable
+- Version: v1.2.3
+- Release tag: ofp-v1.2.3
 
-- `uuid` - Plugin UUID
-- `name` - Display name
-- `version` - Latest version
-- `download_url` - Where to download the .sdPlugin.zip
-- `sha256` - Integrity checksum
-- `min_hub_version` - Minimum Bravent Hub version required
-- `changelog` - What's new in this version
+### Bravent Jianying Pro
+- Plugin ID: com.bravent.jianyingpro.sdPlugin
+- Short key: jianyingpro
+- Channel: stable
+- Version: v2.2.0
+- Release tag: jianyingpro-v2.2.0
+- Asset: updates/assets/com.bravent.jianyingpro-v2.2.0.sdPlugin
+- SHA256: fb3baba0e5ba87633a128be32cea0a627e0e5190a07a54de3e1a22fd24f4758f
 
-## Note for Developers
-
-When releasing a new plugin version:
-
-1. Upload the .sdPlugin.zip to `plugins/` or as a GitHub Release
-2. Update `manifest.json` with the new version info
-3. Tag the release in GitHub
-
-The Bravent Hub will automatically detect and prompt users to update.
 ### Bravent Ambient Sounds
-- Plugin ID: com.bravent.focussounds.sdPlugin`r
-- Short key: mbient-sounds`r
-- Channel: stable`r
-- Version: 1.1.0`r
-- Download: updates/assets/com.bravent.focussounds-v1.1.0.sdPlugin`r
-- SHA256: $sha`r
+- Plugin ID: com.bravent.focussounds.sdPlugin
+- Short key: ambient-sounds
+- Channel: stable
+- Version: v1.1.1
+- Asset: updates/assets/com.bravent.focussounds-v1.1.1.sdPlugin
+- SHA256: bbe57ef60b328640abe33bcba0783c780edc83e4e340c1036467f9ff445a5794

@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html>
 <head>
   <meta charset="UTF-8">
@@ -609,6 +609,33 @@
         return DECK_VISUAL_ROOT + sound.id + "-" + mode + "@2x.png";
       }
 
+      function drawLoadedDeckVisualAsset(src, image) {
+        contexts.forEach(function (current) {
+          var mode = getDeckVisualMode(current);
+          if (current.visible !== false && getDeckVisualSrc(current, mode) === src) {
+            drawDeckVisualAsset(current, image, mode);
+          }
+        });
+      }
+
+      function ensureDeckVisualImage(src) {
+        var image = deckVisualCache[src];
+        if (!image) {
+          image = new Image();
+          deckVisualCache[src] = image;
+        }
+        if (!image._braventAmbientOnload) {
+          image._braventAmbientOnload = true;
+          image.onload = function () {
+            drawLoadedDeckVisualAsset(src, image);
+          };
+        }
+        if (!image.src) {
+          image.src = src;
+        }
+        return image;
+      }
+
       function drawDeckVisualAsset(state, image, mode) {
         var canvas = document.getElementById("render");
         var g = canvas.getContext("2d");
@@ -643,114 +670,26 @@
       function renderDeckVisualAsset(state) {
         var mode = getDeckVisualMode(state);
         var src = getDeckVisualSrc(state, mode);
-        var image = deckVisualCache[src];
+        var image = ensureDeckVisualImage(src);
         if (image && image.complete && image.naturalWidth > 0) {
           drawDeckVisualAsset(state, image, mode);
           return true;
         }
-        if (!image) {
-          image = new Image();
-          deckVisualCache[src] = image;
-          image.onload = function () {
-            var current = contexts.get(state.context);
-            if (current && current.visible !== false && getDeckVisualSrc(current, getDeckVisualMode(current)) === src) {
-              drawDeckVisualAsset(current, image, getDeckVisualMode(current));
-            }
-          };
-          image.src = src;
-        }
-        return false;
+        return true;
       }
 
       function renderIcon(state) {
-        if (renderDeckVisualAsset(state)) {
-          return;
-        }
-        var canvas = document.getElementById("render");
-        var g = canvas.getContext("2d");
-        var W = 144;
-        canvas.width = W;
-        canvas.height = W;
+        renderDeckVisualAsset(state);
+      }
 
-        var sound = findSound(state.settings.selectedSound) || SOUND_LIBRARY[0];
-        var statusText = state.isPlaying ? "PAUSED" : "PLAY";
-        var centerGlyph = state.isPlaying ? "⏸" : "▶";
-        var panelColor = normalizeHexColor(state.settings.bgColor, DEFAULT_SETTINGS.bgColor);
-        var panelOpacity = clamp(state.settings.bgOpacity, 0, 100) / 100;
-
-        g.clearRect(0, 0, W, W);
-
-        if (panelOpacity > 0) {
-          var bg = g.createLinearGradient(0, 0, W, W);
-          bg.addColorStop(0, rgbaFromHex(panelColor, panelOpacity * 0.95));
-          bg.addColorStop(1, rgbaFromHex(panelColor, panelOpacity * 0.55));
-          g.fillStyle = bg;
-          roundRect(g, 5, 5, W - 10, W - 10, 22);
-          g.fill();
-
-          // subtle depth overlay so background remains visible
-          var sheen = g.createLinearGradient(0, 0, 0, W);
-          sheen.addColorStop(0, "rgba(255,255,255," + (0.12 * panelOpacity).toFixed(3) + ")");
-          sheen.addColorStop(1, "rgba(255,255,255,0.00)");
-          g.fillStyle = sheen;
-          roundRect(g, 5, 5, W - 10, W - 10, 22);
-          g.fill();
-        }
-
-        g.fillStyle = "rgba(255,255,255," + (0.06 + panelOpacity * 0.08).toFixed(3) + ")";
-        roundRect(g, 14, 12, W - 28, 34, 12);
-        g.fill();
-
-        g.fillStyle = sound.color;
-        g.beginPath();
-        g.arc(28, 29, 11, 0, Math.PI * 2);
-        g.fill();
-
-        g.fillStyle = sound.color;
-        g.fillStyle = "#f7f4ef";
-        g.font = "800 10px Segoe UI, Arial, sans-serif";
-        g.textAlign = "center";
-        g.textBaseline = "middle";
-        g.fillText(sound.symbol, 28, 29);
-
-        g.fillStyle = "#f7f4ef";
-        g.font = "900 20px Segoe UI, Arial, sans-serif";
-        g.textAlign = "center";
-        g.textBaseline = "middle";
-        g.fillText(sound.name.toUpperCase(), W / 2 + 6, 29);
-
-        // Big center mode icon
-        g.font = "900 52px Segoe UI, Arial, sans-serif";
-        g.textAlign = "center";
-        g.textBaseline = "middle";
-        g.fillStyle = "rgba(255,255,255,0.18)";
-        g.fillText(centerGlyph, W / 2 + 2, 74);
-        g.fillStyle = state.isPlaying ? "#f2c58a" : "#7ad58e";
-        g.fillText(centerGlyph, W / 2, 72);
-
-        // Status strip
-        roundRect(g, 14, 93, W - 28, 16, 8);
-        g.fillStyle = "rgba(255,255,255,0.10)";
-        g.fill();
-
-        g.textAlign = "center";
-        g.font = "800 12px Segoe UI, Arial, sans-serif";
-        g.fillStyle = state.isPlaying ? "#7ad58e" : "#f2c58a";
-        g.fillText(statusText, W / 2, 101);
-
-        g.font = "800 10px Segoe UI, Arial, sans-serif";
-        g.fillStyle = "rgba(247,244,239,0.86)";
-        g.fillText("VOL " + String(Math.round(clamp(state.settings.volume, 0, 100))) + "%", W / 2, 126);
-
-        sendMessage({
-          event: "setImage",
-          context: state.context,
-          payload: {
-            image: canvas.toDataURL("image/png"),
-            target: 0
-          }
+      function preloadDeckVisualAssets() {
+        var modes = ["paused", "playing", "selecting"];
+        SOUND_LIBRARY.forEach(function (sound) {
+          modes.forEach(function (mode) {
+            var src = DECK_VISUAL_ROOT + sound.id + "-" + mode + "@2x.png";
+            ensureDeckVisualImage(src);
+          });
         });
-        sendState(state.context, state.isPlaying ? 1 : 0);
       }
 
       function roundRect(g, x, y, w, h, r) {
@@ -982,8 +921,9 @@
         connect(port);
       };
 
+      preloadDeckVisualAssets();
       startTicker();
-    })();
+})();
   </script>
 </body>
 </html>
