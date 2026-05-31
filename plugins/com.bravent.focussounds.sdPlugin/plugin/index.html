@@ -1,0 +1,888 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Bravent Ambient Sounds</title>
+</head>
+<body style="margin:0;background:transparent;overflow:hidden">
+  <canvas id="render" width="144" height="144" style="display:none"></canvas>
+  <script>
+    "use strict";
+
+    (function () {
+      var ws = null;
+      var pluginUUID = "";
+      var registerEvent = "";
+      var contexts = new Map();
+
+      var HOLD_MS = 650;
+      var VOLUME_STEP = 5;
+
+      var SOUND_LIBRARY = [
+        { id: "raining", name: "Raining", code: "RN", symbol: "R", color: "#4e8ed1", file: "Raining.mp3" },
+        { id: "fire", name: "Fire", code: "FR", symbol: "F", color: "#d67f49", file: "Fire.mp3" },
+        { id: "forest", name: "Forest", code: "FS", symbol: "F", color: "#4f9b67", file: "Forest.mp3" },
+        { id: "lake", name: "Lake", code: "LK", symbol: "L", color: "#5f8dd4", file: "Lake.mp3" },
+        { id: "sea_shore", name: "Sea Shore", code: "SS", symbol: "S", color: "#5baab6", file: "Sea Shore.mp3" }
+      ];
+
+      var DEFAULT_SETTINGS = {
+        selectedSound: "raining",
+        autoRepeat: true,
+        timerMinutes: 0,
+        beepAtEnd: false,
+        volume: 70,
+        bgColor: "#12365d",
+        bgOpacity: 100,
+        outputDeviceId: "default"
+      };
+
+      function safeParse(raw) {
+        try {
+          if (typeof raw === "string") {
+            return JSON.parse(raw);
+          }
+          return raw || null;
+        } catch (error) {
+          return null;
+        }
+      }
+
+      function clamp(value, min, max) {
+        var num = Number(value);
+        if (!Number.isFinite(num)) {
+          return min;
+        }
+        return Math.max(min, Math.min(max, num));
+      }
+
+      function normalizeHexColor(input, fallback) {
+        var value = String(input || "").trim();
+        if (/^#[0-9a-fA-F]{6}$/.test(value)) {
+          return value.toLowerCase();
+        }
+        if (/^#[0-9a-fA-F]{3}$/.test(value)) {
+          return ("#" + value[1] + value[1] + value[2] + value[2] + value[3] + value[3]).toLowerCase();
+        }
+        return String(fallback || "#12365d").toLowerCase();
+      }
+
+      function rgbFromHex(hex) {
+        var safe = normalizeHexColor(hex, "#12365d");
+        return {
+          r: parseInt(safe.slice(1, 3), 16),
+          g: parseInt(safe.slice(3, 5), 16),
+          b: parseInt(safe.slice(5, 7), 16)
+        };
+      }
+
+      function rgbaFromHex(hex, alpha) {
+        var rgb = rgbFromHex(hex);
+        var a = clamp(alpha, 0, 1);
+        return "rgba(" + rgb.r + "," + rgb.g + "," + rgb.b + "," + a.toFixed(3) + ")";
+      }
+
+      function normalizeSettings(input) {
+        var out = {
+          selectedSound: DEFAULT_SETTINGS.selectedSound,
+          autoRepeat: DEFAULT_SETTINGS.autoRepeat,
+          timerMinutes: DEFAULT_SETTINGS.timerMinutes,
+          beepAtEnd: DEFAULT_SETTINGS.beepAtEnd,
+          volume: DEFAULT_SETTINGS.volume,
+          bgColor: DEFAULT_SETTINGS.bgColor,
+          bgOpacity: DEFAULT_SETTINGS.bgOpacity,
+          outputDeviceId: DEFAULT_SETTINGS.outputDeviceId
+        };
+
+        if (!input || typeof input !== "object") {
+          return out;
+        }
+
+        if (typeof input.selectedSound === "string") {
+          out.selectedSound = input.selectedSound;
+        }
+        if (typeof input.autoRepeat === "boolean") {
+          out.autoRepeat = input.autoRepeat;
+        }
+        if (typeof input.beepAtEnd === "boolean") {
+          out.beepAtEnd = input.beepAtEnd;
+        }
+
+        out.timerMinutes = clamp(input.timerMinutes, 0, 240);
+        out.timerMinutes = Math.round(out.timerMinutes);
+        out.volume = clamp(input.volume, 0, 100);
+        out.volume = Math.round(out.volume);
+        out.bgOpacity = clamp(input.bgOpacity, 0, 100);
+        out.bgOpacity = Math.round(out.bgOpacity);
+        out.bgColor = normalizeHexColor(input.bgColor, DEFAULT_SETTINGS.bgColor);
+        if (typeof input.outputDeviceId === "string" && input.outputDeviceId.trim()) {
+          out.outputDeviceId = input.outputDeviceId.trim();
+        }
+
+        if (!findSound(out.selectedSound)) {
+          out.selectedSound = DEFAULT_SETTINGS.selectedSound;
+        }
+        return out;
+      }
+
+      function isKnobAction(action) {
+        return /\.knob$/i.test(String(action || ""));
+      }
+
+      function findSound(id) {
+        for (var i = 0; i < SOUND_LIBRARY.length; i++) {
+          if (SOUND_LIBRARY[i].id === id) {
+            return SOUND_LIBRARY[i];
+          }
+        }
+        return null;
+      }
+
+      function soundIndexFromId(id) {
+        for (var i = 0; i < SOUND_LIBRARY.length; i++) {
+          if (SOUND_LIBRARY[i].id === id) {
+            return i;
+          }
+        }
+        return 0;
+      }
+
+      function nextSoundId(currentId) {
+        var idx = soundIndexFromId(currentId);
+        return SOUND_LIBRARY[(idx + 1) % SOUND_LIBRARY.length].id;
+      }
+
+      function prevSoundId(currentId) {
+        var idx = soundIndexFromId(currentId);
+        var nextIdx = (idx - 1 + SOUND_LIBRARY.length) % SOUND_LIBRARY.length;
+        return SOUND_LIBRARY[nextIdx].id;
+      }
+
+      function msToClock(ms) {
+        var total = Math.max(0, Math.floor(ms / 1000));
+        var min = Math.floor(total / 60);
+        var sec = total % 60;
+        return String(min).padStart(2, "0") + ":" + String(sec).padStart(2, "0");
+      }
+
+      function buildSoundPath(sound) {
+        return "../sounds/" + sound.file;
+      }
+
+      function sendMessage(payload) {
+        if (!ws || ws.readyState !== 1) {
+          return;
+        }
+        ws.send(JSON.stringify(payload));
+      }
+
+      function sendSettings(context, settings) {
+        sendMessage({
+          event: "setSettings",
+          context: context,
+          payload: settings
+        });
+      }
+
+      function sendState(context, stateIndex) {
+        sendMessage({
+          event: "setState",
+          context: context,
+          payload: {
+            state: stateIndex
+          }
+        });
+      }
+
+      function sendStatusToInspector(context, data) {
+        sendMessage({
+          event: "sendToPropertyInspector",
+          context: context,
+          payload: data
+        });
+      }
+
+      function getContext(context) {
+        if (!contexts.has(context)) {
+          contexts.set(context, {
+            context: context,
+            action: "",
+            kind: "key",
+            settings: normalizeSettings(null),
+            audio: null,
+            audioSrc: "",
+            isPlaying: false,
+            holdTimer: null,
+            holdTriggered: false,
+            keyDownAt: 0,
+            pressActive: false,
+            endTimer: null,
+            remainingMs: 0,
+            endAtMs: 0,
+            lastToggleAt: 0,
+            lastKnobEventAt: 0,
+            lastDialPressAt: 0,
+            lastDialDownAt: 0,
+            lastHoldAt: 0,
+            skipNextUp: false,
+            lastEvent: "init",
+            lastPressMs: 0,
+            lastTouchHold: null
+          });
+        }
+        return contexts.get(context);
+      }
+
+      function markEvent(state, eventName, payload) {
+        state.lastEvent = String(eventName || "unknown");
+        if (state.lastEvent === "touchTap") {
+          state.lastTouchHold = !!(payload && payload.hold);
+        }
+      }
+
+      function ensureAudio(state) {
+        var sound = findSound(state.settings.selectedSound) || SOUND_LIBRARY[0];
+        var src = buildSoundPath(sound);
+        var needNew = !state.audio || state.audioSrc !== src;
+        if (needNew) {
+          if (state.audio) {
+            try {
+              state.audio.pause();
+            } catch (_error) {}
+          }
+          state.audio = new Audio(src);
+          state.audioSrc = src;
+          state.audio.preload = "auto";
+          state.audio.addEventListener("ended", function () {
+            if (state.audio && !state.audio.loop) {
+              state.isPlaying = false;
+              if (state.settings.timerMinutes > 0 && state.remainingMs > 0) {
+                state.remainingMs = 0;
+              }
+              renderAndPush(state);
+            }
+          });
+        }
+        state.audio.loop = !!state.settings.autoRepeat;
+        state.audio.volume = clamp(state.settings.volume, 0, 100) / 100;
+        applyOutputDevice(state);
+        return state.audio;
+      }
+
+      function applyOutputDevice(state) {
+        if (!state.audio || typeof state.audio.setSinkId !== "function") {
+          return;
+        }
+        var targetSinkId = state.settings.outputDeviceId || "default";
+        state.audio.setSinkId(targetSinkId).catch(function () {
+          if (targetSinkId !== "default") {
+            state.audio.setSinkId("default").catch(function () {});
+          }
+        });
+      }
+
+      function clearEndTimer(state) {
+        if (state.endTimer) {
+          clearTimeout(state.endTimer);
+          state.endTimer = null;
+        }
+        state.endAtMs = 0;
+      }
+
+      function armEndTimer(state, durationMs) {
+        clearEndTimer(state);
+        if (durationMs <= 0) {
+          state.remainingMs = 0;
+          return;
+        }
+        state.remainingMs = durationMs;
+        state.endAtMs = Date.now() + durationMs;
+        state.endTimer = setTimeout(function () {
+          state.endTimer = null;
+          state.endAtMs = 0;
+          state.remainingMs = 0;
+          stopPlayback(state, false);
+          if (state.settings.beepAtEnd) {
+            playEndBeep(state.settings.volume);
+          }
+          renderAndPush(state);
+        }, durationMs);
+      }
+
+      function pauseTimer(state) {
+        if (state.endAtMs > 0) {
+          state.remainingMs = Math.max(0, state.endAtMs - Date.now());
+        }
+        clearEndTimer(state);
+      }
+
+      function playEndBeep(volumePercent) {
+        try {
+          var AudioCtx = window.AudioContext || window.webkitAudioContext;
+          if (!AudioCtx) {
+            return;
+          }
+          var audioCtx = new AudioCtx();
+          var master = audioCtx.createGain();
+          master.gain.value = Math.max(0, Math.min(1, (Number(volumePercent) || 70) / 100)) * 0.3;
+          master.connect(audioCtx.destination);
+
+          var tones = [
+            { freq: 880, start: 0, len: 0.12 },
+            { freq: 1320, start: 0.14, len: 0.16 }
+          ];
+          for (var i = 0; i < tones.length; i++) {
+            var tone = tones[i];
+            var osc = audioCtx.createOscillator();
+            var gain = audioCtx.createGain();
+            osc.type = "sine";
+            osc.frequency.value = tone.freq;
+            gain.gain.setValueAtTime(0.0001, audioCtx.currentTime + tone.start);
+            gain.gain.exponentialRampToValueAtTime(0.9, audioCtx.currentTime + tone.start + 0.03);
+            gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + tone.start + tone.len);
+            osc.connect(gain);
+            gain.connect(master);
+            osc.start(audioCtx.currentTime + tone.start);
+            osc.stop(audioCtx.currentTime + tone.start + tone.len + 0.05);
+          }
+
+          setTimeout(function () {
+            if (audioCtx && typeof audioCtx.close === "function") {
+              audioCtx.close().catch(function () {});
+            }
+          }, 1000);
+        } catch (_error) {}
+      }
+
+      function startPlayback(state) {
+        var audio = ensureAudio(state);
+
+        if (state.settings.timerMinutes > 0) {
+          if (!state.remainingMs || state.remainingMs <= 0) {
+            state.remainingMs = state.settings.timerMinutes * 60 * 1000;
+          }
+          armEndTimer(state, state.remainingMs);
+        } else {
+          state.remainingMs = 0;
+          clearEndTimer(state);
+        }
+
+        state.isPlaying = true;
+        renderAndPush(state);
+
+        audio.play().then(function () {
+          state.isPlaying = true;
+          renderAndPush(state);
+        }).catch(function () {
+          state.isPlaying = false;
+          pauseTimer(state);
+          renderAndPush(state);
+        });
+      }
+
+      function stopPlayback(state, preservePosition) {
+        if (state.audio) {
+          try {
+            state.audio.pause();
+            if (!preservePosition) {
+              state.audio.currentTime = 0;
+            }
+          } catch (_error) {}
+        }
+        state.isPlaying = false;
+        pauseTimer(state);
+      }
+
+      function togglePlayback(state) {
+        var now = Date.now();
+        if (now - state.lastToggleAt < 180) {
+          return;
+        }
+        state.lastToggleAt = now;
+
+        if (state.isPlaying) {
+          stopPlayback(state, true);
+          renderAndPush(state);
+          return;
+        }
+        startPlayback(state);
+      }
+
+      function triggerKnobToggle(state) {
+        var now = Date.now();
+        if (now - state.lastKnobEventAt < 220) {
+          return;
+        }
+        state.lastKnobEventAt = now;
+        togglePlayback(state);
+      }
+
+      function applyIncomingSettings(state, incoming) {
+        var prev = state.settings;
+        state.settings = normalizeSettings(incoming);
+        var timerChanged = prev.timerMinutes !== state.settings.timerMinutes;
+        var soundChanged = prev.selectedSound !== state.settings.selectedSound;
+        var outputChanged = prev.outputDeviceId !== state.settings.outputDeviceId;
+
+        if (soundChanged) {
+          var wasPlaying = state.isPlaying;
+          var carryTimer = state.remainingMs;
+          if (state.audio) {
+            try {
+              state.audio.pause();
+            } catch (_error) {}
+          }
+          state.audio = null;
+          state.audioSrc = "";
+          if (wasPlaying) {
+            state.isPlaying = false;
+            state.remainingMs = carryTimer;
+            startPlayback(state);
+          }
+        } else if (state.audio) {
+          state.audio.loop = !!state.settings.autoRepeat;
+          state.audio.volume = clamp(state.settings.volume, 0, 100) / 100;
+          if (outputChanged) {
+            applyOutputDevice(state);
+          }
+        }
+
+        if (timerChanged && state.isPlaying) {
+          state.remainingMs = state.settings.timerMinutes > 0 ? state.settings.timerMinutes * 60 * 1000 : 0;
+          if (state.settings.timerMinutes > 0) {
+            armEndTimer(state, state.remainingMs);
+          } else {
+            clearEndTimer(state);
+          }
+        }
+      }
+
+      function cycleSound(state) {
+        state.settings.selectedSound = nextSoundId(state.settings.selectedSound);
+        state.lastHoldAt = Date.now();
+        sendSettings(state.context, state.settings);
+        applyIncomingSettings(state, state.settings);
+        renderAndPush(state);
+      }
+
+      function cycleSoundBySteps(state, ticks) {
+        var steps = Math.round(Number(ticks) || 0);
+        if (!Number.isFinite(steps) || steps === 0) {
+          return;
+        }
+        var count = Math.abs(steps);
+        var id = state.settings.selectedSound;
+        for (var i = 0; i < count; i++) {
+          id = steps > 0 ? nextSoundId(id) : prevSoundId(id);
+        }
+        state.settings.selectedSound = id;
+        state.lastHoldAt = Date.now();
+        sendSettings(state.context, state.settings);
+        applyIncomingSettings(state, state.settings);
+        renderAndPush(state);
+      }
+
+      function isPlaybackActive(state) {
+        return !!(state && (state.isPlaying || (state.audio && !state.audio.paused && !state.audio.ended)));
+      }
+
+      function adjustVolumeBySteps(state, ticks) {
+        var steps = Math.round(Number(ticks) || 0);
+        if (!Number.isFinite(steps) || steps === 0) {
+          return;
+        }
+        var nextVolume = Math.round(clamp(state.settings.volume + steps * VOLUME_STEP, 0, 100));
+        if (nextVolume === state.settings.volume) {
+          renderAndPush(state);
+          return;
+        }
+        state.settings.volume = nextVolume;
+        if (state.audio) {
+          state.audio.volume = clamp(state.settings.volume, 0, 100) / 100;
+        }
+        sendSettings(state.context, state.settings);
+        renderAndPush(state);
+      }
+
+      function startHoldDetection(state, enableTimer) {
+        clearHoldDetection(state);
+        state.pressActive = true;
+        state.holdTriggered = false;
+        state.keyDownAt = Date.now();
+        if (enableTimer !== false) {
+          state.holdTimer = setTimeout(function () {
+            state.holdTriggered = true;
+            cycleSound(state);
+          }, HOLD_MS);
+        }
+      }
+
+      function clearHoldDetection(state) {
+        if (state.holdTimer) {
+          clearTimeout(state.holdTimer);
+          state.holdTimer = null;
+        }
+      }
+
+      function finishPress(state, useDurationHold) {
+        if (state.skipNextUp) {
+          state.skipNextUp = false;
+          clearHoldDetection(state);
+          state.pressActive = false;
+          state.holdTriggered = false;
+          state.keyDownAt = 0;
+          return;
+        }
+        var wasHold = state.holdTriggered;
+        var duration = 0;
+        if (state.keyDownAt > 0) {
+          duration = Math.max(0, Date.now() - state.keyDownAt);
+          state.lastPressMs = duration;
+        }
+        if (useDurationHold === true && duration >= HOLD_MS) {
+          wasHold = true;
+        }
+        clearHoldDetection(state);
+        state.pressActive = false;
+        state.holdTriggered = false;
+        state.keyDownAt = 0;
+        if (!wasHold) {
+          togglePlayback(state);
+        } else if (useDurationHold === true) {
+          cycleSound(state);
+        }
+      }
+
+      function statusPayload(state) {
+        var sound = findSound(state.settings.selectedSound) || SOUND_LIBRARY[0];
+        var remaining = 0;
+        if (state.endAtMs > 0) {
+          remaining = Math.max(0, state.endAtMs - Date.now());
+        } else {
+          remaining = Math.max(0, state.remainingMs || 0);
+        }
+        return {
+          type: "status",
+          status: {
+            mode: state.isPlaying ? "Playing" : "Paused",
+            soundName: sound.name,
+            soundId: sound.id,
+            autoRepeat: !!state.settings.autoRepeat,
+            timerMinutes: state.settings.timerMinutes,
+            volume: state.settings.volume,
+            beepAtEnd: !!state.settings.beepAtEnd,
+            bgColor: state.settings.bgColor,
+            bgOpacity: state.settings.bgOpacity,
+            outputDeviceId: state.settings.outputDeviceId,
+            remainingMs: remaining,
+            debugEvent: state.lastEvent || "",
+            debugPressMs: Number(state.lastPressMs || 0),
+            debugTouchHold: state.lastTouchHold
+          }
+        };
+      }
+
+      function renderAndPush(state) {
+        renderIcon(state);
+        sendStatusToInspector(state.context, statusPayload(state));
+      }
+
+      function renderIcon(state) {
+        var canvas = document.getElementById("render");
+        var g = canvas.getContext("2d");
+        var W = 144;
+        canvas.width = W;
+        canvas.height = W;
+
+        var sound = findSound(state.settings.selectedSound) || SOUND_LIBRARY[0];
+        var statusText = state.isPlaying ? "PAUSED" : "PLAY";
+        var centerGlyph = state.isPlaying ? "⏸" : "▶";
+        var panelColor = normalizeHexColor(state.settings.bgColor, DEFAULT_SETTINGS.bgColor);
+        var panelOpacity = clamp(state.settings.bgOpacity, 0, 100) / 100;
+
+        g.clearRect(0, 0, W, W);
+
+        if (panelOpacity > 0) {
+          var bg = g.createLinearGradient(0, 0, W, W);
+          bg.addColorStop(0, rgbaFromHex(panelColor, panelOpacity * 0.95));
+          bg.addColorStop(1, rgbaFromHex(panelColor, panelOpacity * 0.55));
+          g.fillStyle = bg;
+          roundRect(g, 5, 5, W - 10, W - 10, 22);
+          g.fill();
+
+          // subtle depth overlay so background remains visible
+          var sheen = g.createLinearGradient(0, 0, 0, W);
+          sheen.addColorStop(0, "rgba(255,255,255," + (0.12 * panelOpacity).toFixed(3) + ")");
+          sheen.addColorStop(1, "rgba(255,255,255,0.00)");
+          g.fillStyle = sheen;
+          roundRect(g, 5, 5, W - 10, W - 10, 22);
+          g.fill();
+        }
+
+        g.fillStyle = "rgba(255,255,255," + (0.06 + panelOpacity * 0.08).toFixed(3) + ")";
+        roundRect(g, 14, 12, W - 28, 34, 12);
+        g.fill();
+
+        g.fillStyle = sound.color;
+        g.beginPath();
+        g.arc(28, 29, 11, 0, Math.PI * 2);
+        g.fill();
+
+        g.fillStyle = sound.color;
+        g.fillStyle = "#f7f4ef";
+        g.font = "800 10px Segoe UI, Arial, sans-serif";
+        g.textAlign = "center";
+        g.textBaseline = "middle";
+        g.fillText(sound.symbol, 28, 29);
+
+        g.fillStyle = "#f7f4ef";
+        g.font = "900 20px Segoe UI, Arial, sans-serif";
+        g.textAlign = "center";
+        g.textBaseline = "middle";
+        g.fillText(sound.name.toUpperCase(), W / 2 + 6, 29);
+
+        // Big center mode icon
+        g.font = "900 52px Segoe UI, Arial, sans-serif";
+        g.textAlign = "center";
+        g.textBaseline = "middle";
+        g.fillStyle = "rgba(255,255,255,0.18)";
+        g.fillText(centerGlyph, W / 2 + 2, 74);
+        g.fillStyle = state.isPlaying ? "#f2c58a" : "#7ad58e";
+        g.fillText(centerGlyph, W / 2, 72);
+
+        // Status strip
+        roundRect(g, 14, 93, W - 28, 16, 8);
+        g.fillStyle = "rgba(255,255,255,0.10)";
+        g.fill();
+
+        g.textAlign = "center";
+        g.font = "800 12px Segoe UI, Arial, sans-serif";
+        g.fillStyle = state.isPlaying ? "#7ad58e" : "#f2c58a";
+        g.fillText(statusText, W / 2, 101);
+
+        g.font = "800 10px Segoe UI, Arial, sans-serif";
+        g.fillStyle = "rgba(247,244,239,0.86)";
+        g.fillText("VOL " + String(Math.round(clamp(state.settings.volume, 0, 100))) + "%", W / 2, 126);
+
+        sendMessage({
+          event: "setImage",
+          context: state.context,
+          payload: {
+            image: canvas.toDataURL("image/png"),
+            target: 0
+          }
+        });
+        sendState(state.context, state.isPlaying ? 1 : 0);
+      }
+
+      function roundRect(g, x, y, w, h, r) {
+        var radius = Math.max(0, Math.min(r, Math.min(w, h) / 2));
+        g.beginPath();
+        g.moveTo(x + radius, y);
+        g.arcTo(x + w, y, x + w, y + h, radius);
+        g.arcTo(x + w, y + h, x, y + h, radius);
+        g.arcTo(x, y + h, x, y, radius);
+        g.arcTo(x, y, x + w, y, radius);
+        g.closePath();
+      }
+
+      function cleanupContext(context) {
+        var state = contexts.get(context);
+        if (!state) {
+          return;
+        }
+        clearHoldDetection(state);
+        clearEndTimer(state);
+        if (state.audio) {
+          try {
+            state.audio.pause();
+          } catch (_error) {}
+        }
+        contexts.delete(context);
+      }
+
+      function handleSendToPlugin(message) {
+        var state = getContext(message.context);
+        var outer = message.payload || {};
+        var payload = outer.payload && typeof outer.payload === "object" ? outer.payload : outer;
+        if (!payload || typeof payload !== "object") {
+          return;
+        }
+
+        if (payload.type === "settings-changed" && payload.settings) {
+          applyIncomingSettings(state, payload.settings);
+          sendSettings(state.context, state.settings);
+          renderAndPush(state);
+          return;
+        }
+        if (payload.type === "request-status") {
+          sendStatusToInspector(state.context, statusPayload(state));
+          return;
+        }
+        if (payload.type === "toggle-play") {
+          togglePlayback(state);
+          return;
+        }
+        if (payload.type === "cycle-sound") {
+          cycleSound(state);
+          return;
+        }
+      }
+
+      function handleEvent(message) {
+        var eventName = message.event;
+        var state = null;
+
+        switch (eventName) {
+          case "willAppear":
+            state = getContext(message.context);
+            markEvent(state, eventName, message.payload);
+            state.action = message.action || state.action;
+            state.kind = isKnobAction(state.action) ? "knob" : "key";
+            applyIncomingSettings(state, message.payload && message.payload.settings);
+            renderAndPush(state);
+            break;
+          case "didReceiveSettings":
+            state = getContext(message.context);
+            markEvent(state, eventName, message.payload);
+            applyIncomingSettings(state, message.payload && message.payload.settings);
+            renderAndPush(state);
+            break;
+          case "willDisappear":
+            cleanupContext(message.context);
+            break;
+          case "sendToPlugin":
+            handleSendToPlugin(message);
+            break;
+          case "keyDown":
+            state = getContext(message.context);
+            markEvent(state, eventName, message.payload);
+            startHoldDetection(state, true);
+            break;
+          case "keyUp":
+            state = getContext(message.context);
+            markEvent(state, eventName, message.payload);
+            finishPress(state, false);
+            break;
+          case "dialDown":
+          case "encoderDown":
+            state = getContext(message.context);
+            markEvent(state, eventName, message.payload);
+            state.lastDialDownAt = Date.now();
+            if (state.kind === "knob") {
+              triggerKnobToggle(state);
+            }
+            break;
+          case "dialUp":
+          case "encoderUp":
+            state = getContext(message.context);
+            markEvent(state, eventName, message.payload);
+            break;
+          case "dialPress":
+          case "encoderPress":
+            state = getContext(message.context);
+            markEvent(state, eventName, message.payload);
+            if (state.kind === "knob") {
+              var nowPress = Date.now();
+              if (nowPress - state.lastDialPressAt > 180) {
+                state.lastDialPressAt = nowPress;
+                triggerKnobToggle(state);
+              }
+            }
+            break;
+          case "touchTap":
+            state = getContext(message.context);
+            markEvent(state, eventName, message.payload);
+            if (state.kind === "knob") {
+              triggerKnobToggle(state);
+            } else {
+              cycleSound(state);
+            }
+            break;
+          case "dialRotate":
+          case "encoderRotate":
+            state = getContext(message.context);
+            markEvent(state, eventName, message.payload);
+            var ticks = 0;
+            if (message.payload && message.payload.ticks != null) {
+              ticks = Number(message.payload.ticks);
+            } else if (message.payload && message.payload.delta != null) {
+              ticks = Number(message.payload.delta);
+            } else if (message.payload && message.payload.value != null) {
+              ticks = Number(message.payload.value);
+            }
+            if (!Number.isFinite(ticks)) {
+              ticks = 0;
+            }
+            if (ticks !== 0 && state.kind === "knob") {
+              if (isPlaybackActive(state)) {
+                adjustVolumeBySteps(state, ticks);
+              } else {
+                cycleSoundBySteps(state, ticks);
+              }
+            }
+            break;
+          default:
+            break;
+        }
+      }
+
+      function startTicker() {
+        setInterval(function () {
+          contexts.forEach(function (state) {
+            if (!state.isPlaying) {
+              return;
+            }
+            if (state.endAtMs > 0) {
+              var remaining = Math.max(0, state.endAtMs - Date.now());
+              state.remainingMs = remaining;
+              if (remaining <= 0) {
+                stopPlayback(state, false);
+                if (state.settings.beepAtEnd) {
+                  playEndBeep(state.settings.volume);
+                }
+                renderAndPush(state);
+              } else {
+                renderIcon(state);
+              }
+            } else {
+              renderIcon(state);
+            }
+          });
+        }, 1000);
+      }
+
+      function connect(port) {
+        ws = new WebSocket("ws://127.0.0.1:" + port);
+        ws.onopen = function () {
+          sendMessage({
+            event: registerEvent,
+            uuid: pluginUUID
+          });
+        };
+        ws.onmessage = function (ev) {
+          var message = safeParse(ev.data);
+          if (!message || !message.event) {
+            return;
+          }
+          handleEvent(message);
+        };
+        ws.onclose = function () {
+          contexts.forEach(function (_state, context) {
+            cleanupContext(context);
+          });
+        };
+      }
+
+      window.connectElgatoStreamDeckSocket = function (port, uuid, eventName) {
+        pluginUUID = uuid || "";
+        registerEvent = eventName || "registerPlugin";
+        connect(port);
+      };
+
+      startTicker();
+    })();
+  </script>
+</body>
+</html>
+

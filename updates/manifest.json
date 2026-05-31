@@ -1,22 +1,35 @@
-{
-  "store_name": "Bravent Plugin Store",
-  "store_id": "com.bravent.pluginstore",
-  "version": 1,
-  "plugins": [
-    {
-      "id": "com.bravent.operationflowplus.sdPlugin",
-      "key": "ofp",
-      "name": "Bravent Operation Flow+",
-      "channels": {
-        "stable": {
-          "version": "v1.2.3",
-          "downloadUrl": "https://github.com/sixth-tech/bravent-plugin-store/releases/download/ofp-v1.2.3/com.bravent.operationflowplus-v1.2.3.sdPlugin",
-          "sha256": "1330604744d16bda4307afdfd1f905888aac3675faae28c7320196900800f3ba",
-          "publishedAt": "2026-05-29"
-        }
-      }
-    }
-  ],
-  "updated_at": "2026-05-29T17:16:05+08:00",
-  "api_version": "1.0"
+﻿{
+    "store_name":  "Bravent Plugin Store",
+    "store_id":  "com.bravent.pluginstore",
+    "version":  1,
+    "plugins":  [
+                    {
+                        "id":  "com.bravent.operationflowplus.sdPlugin",
+                        "key":  "ofp",
+                        "name":  "Bravent Operation Flow+",
+                        "channels":  {
+                                         "stable":  {
+                                                        "version":  "v1.2.3",
+                                                        "downloadUrl":  "https://github.com/sixth-tech/bravent-plugin-store/releases/download/ofp-v1.2.3/com.bravent.operationflowplus-v1.2.3.sdPlugin",
+                                                        "sha256":  "1330604744d16bda4307afdfd1f905888aac3675faae28c7320196900800f3ba",
+                                                        "publishedAt":  "2026-05-29"
+                                                    }
+                                     }
+                    },
+                    {
+                        "id":  "com.bravent.focussounds.sdPlugin",
+                        "key":  "ambient-sounds",
+                        "name":  "Bravent Ambient Sounds",
+                        "channels":  {
+                                         "stable":  {
+                                                        "version":  "v1.0.9",
+                                                        "downloadUrl":  "https://raw.githubusercontent.com/sixth-tech/bravent-plugin-store/main/updates/assets/com.bravent.focussounds-v1.0.9.sdPlugin",
+                                                        "sha256":  "9aba04f6eb1b11ddfef243a037a69d389295d282688705f5f45301fe468fb48e",
+                                                        "publishedAt":  "2026-05-31"
+                                                    }
+                                     }
+                    }
+                ],
+    "updated_at":  "2026-05-31T15:50:10+08:00",
+    "api_version":  "1.0"
 }

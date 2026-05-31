@@ -1,0 +1,100 @@
+﻿{
+    "Actions":  [
+                    {
+                        "Icon":  "images/white-line-v2/actions/com-bravent-focussounds-key",
+                        "Name":  "Ambient Sounds Key",
+                        "States":  [
+                                       {
+                                           "Image":  "images/deck-visual-special-lineal-v1/actions/ambient-key-idle",
+                                           "TitleAlignment":  "bottom",
+                                           "FontSize":  "11",
+                                           "FontStyle":  "Bold"
+                                       },
+                                       {
+                                           "Image":  "images/deck-visual-special-lineal-v1/actions/ambient-key-playing",
+                                           "TitleAlignment":  "bottom",
+                                           "FontSize":  "11",
+                                           "FontStyle":  "Bold"
+                                       }
+                                   ],
+                        "Controllers":  [
+                                            "Keypad"
+                                        ],
+                        "UserTitleEnabled":  false,
+                        "SupportedInMultiActions":  true,
+                        "Tooltip":  "Tap play/pause. White-noise and nature ambience.",
+                        "UUID":  "com.bravent.focussounds.key",
+                        "PropertyInspectorPath":  "propertyInspector/index.html",
+                        "Settings":  {
+                                         "selectedSound":  "raining",
+                                         "autoRepeat":  true,
+                                         "timerMinutes":  0,
+                                         "beepAtEnd":  false,
+                                         "volume":  70,
+                                         "bgColor":  "#12365d",
+                                         "bgOpacity":  100,
+                                         "outputDeviceId":  "default"
+                                     }
+                    },
+                    {
+                        "Icon":  "images/white-line-v2/actions/com-bravent-focussounds-knob",
+                        "Name":  "Ambient Sounds Knob",
+                        "States":  [
+                                       {
+                                           "Image":  "images/deck-visual-special-lineal-v1/actions/ambient-knob-switch",
+                                           "TitleAlignment":  "bottom",
+                                           "FontSize":  "11",
+                                           "FontStyle":  "Bold"
+                                       },
+                                       {
+                                           "Image":  "images/deck-visual-special-lineal-v1/actions/ambient-relaxed-person",
+                                           "TitleAlignment":  "bottom",
+                                           "FontSize":  "11",
+                                           "FontStyle":  "Bold"
+                                       }
+                                   ],
+                        "Controllers":  [
+                                            "Knob"
+                                        ],
+                        "UserTitleEnabled":  false,
+                        "SupportedInMultiActions":  true,
+                        "Tooltip":  "Press play/pause. Spin while paused to switch ambience; spin while playing to adjust Ambient volume.",
+                        "UUID":  "com.bravent.focussounds.knob",
+                        "PropertyInspectorPath":  "propertyInspector/index.html",
+                        "Settings":  {
+                                         "selectedSound":  "raining",
+                                         "autoRepeat":  true,
+                                         "timerMinutes":  0,
+                                         "beepAtEnd":  false,
+                                         "volume":  70,
+                                         "bgColor":  "#12365d",
+                                         "bgOpacity":  100,
+                                         "outputDeviceId":  "default"
+                                     }
+                    }
+                ],
+    "PUUID":  "BraventFocusSounds",
+    "SDKVersion":  1,
+    "Author":  "Bravent",
+    "Name":  "Bravent Ambient Sounds",
+    "Icon":  "images/white-line-v2/plugin-title",
+    "CodePath":  "plugin/index.html",
+    "Description":  "White-noise and nature ambience player for water, fire, forest, lake, and sea-shore focus sessions.",
+    "Category":  "Bravent Ambient Sounds",
+    "CategoryIcon":  "images/white-line-v2/plugin-title",
+    "Version":  "1.0.9",
+    "URL":  "https://bravent.co",
+    "OS":  [
+               {
+                   "Platform":  "windows",
+                   "MinimumVersion":  "10"
+               },
+               {
+                   "Platform":  "mac",
+                   "MinimumVersion":  "10.11"
+               }
+           ],
+    "Software":  {
+                     "MinimumVersion":  "3.10.188.226"
+                 }
+}
