@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html>
 <head>
   <meta charset="UTF-8">
@@ -667,6 +667,115 @@
         sendState(state.context, state.isPlaying ? 1 : 0);
       }
 
+      function drawPendingStateBadge(g, mode) {
+        var fill = mode === "playing" ? "#53e05b" : (mode === "selecting" ? "#3acdf0" : "#fff3ca");
+        g.save();
+        g.fillStyle = "rgba(0,0,0,0.32)";
+        g.beginPath();
+        g.arc(122, 27, 16, 0, Math.PI * 2);
+        g.fill();
+        g.fillStyle = fill;
+        g.strokeStyle = "#090d14";
+        g.lineWidth = 5;
+        g.beginPath();
+        g.arc(118, 23, 16, 0, Math.PI * 2);
+        g.fill();
+        g.stroke();
+        g.fillStyle = "#14183d";
+        g.strokeStyle = "#14183d";
+        g.lineWidth = 4;
+        g.lineCap = "round";
+        g.lineJoin = "round";
+        if (mode === "playing") {
+          g.beginPath();
+          g.moveTo(112, 15);
+          g.lineTo(112, 31);
+          g.lineTo(126, 23);
+          g.closePath();
+          g.fill();
+        } else if (mode === "selecting") {
+          g.beginPath();
+          g.arc(118, 23, 9, 0.25 * Math.PI, 1.72 * Math.PI);
+          g.stroke();
+          g.beginPath();
+          g.moveTo(124, 12);
+          g.lineTo(131, 15);
+          g.lineTo(125, 20);
+          g.closePath();
+          g.fill();
+        } else {
+          roundRect(g, 111, 15, 5, 16, 2.5);
+          g.fill();
+          roundRect(g, 121, 15, 5, 16, 2.5);
+          g.fill();
+        }
+        g.restore();
+      }
+
+      function drawPendingDeckVisual(state, mode) {
+        var canvas = document.getElementById("render");
+        var g = canvas.getContext("2d");
+        var W = 144;
+        var sound = findSound(state.settings.selectedSound) || SOUND_LIBRARY[0];
+        canvas.width = W;
+        canvas.height = W;
+        g.clearRect(0, 0, W, W);
+
+        g.save();
+        g.lineCap = "round";
+        g.lineJoin = "round";
+        g.fillStyle = "rgba(0,0,0,0.28)";
+        g.beginPath();
+        g.arc(76, 76, 49, 0, Math.PI * 2);
+        g.fill();
+
+        var gradient = g.createLinearGradient(34, 30, 110, 116);
+        gradient.addColorStop(0, "rgba(255,255,255,0.92)");
+        gradient.addColorStop(0.35, rgbaFromHex(sound.color, 0.95));
+        gradient.addColorStop(1, "rgba(20,24,61,0.95)");
+        g.fillStyle = gradient;
+        g.strokeStyle = "#090d14";
+        g.lineWidth = 7;
+        g.beginPath();
+        g.arc(72, 72, 48, 0, Math.PI * 2);
+        g.fill();
+        g.stroke();
+
+        g.strokeStyle = "rgba(255,255,255,0.88)";
+        g.lineWidth = 6;
+        g.beginPath();
+        g.moveTo(43, 74);
+        g.bezierCurveTo(55, 58, 88, 58, 101, 74);
+        g.stroke();
+        g.beginPath();
+        g.arc(72, 85, 19, 0.08 * Math.PI, 0.92 * Math.PI);
+        g.stroke();
+
+        g.strokeStyle = "#090d14";
+        g.lineWidth = 5;
+        g.beginPath();
+        g.moveTo(44, 105);
+        g.bezierCurveTo(57, 92, 69, 91, 81, 103);
+        g.stroke();
+        g.beginPath();
+        g.moveTo(101, 43);
+        g.bezierCurveTo(91, 34, 82, 35, 75, 48);
+        g.stroke();
+
+        drawPendingStateBadge(g, mode);
+        g.restore();
+
+        sendMessage({
+          event: "setImage",
+          context: state.context,
+          payload: {
+            image: canvas.toDataURL("image/png"),
+            target: 0
+          }
+        });
+        sendState(state.context, state.isPlaying ? 1 : 0);
+      }
+
       function renderDeckVisualAsset(state) {
         var mode = getDeckVisualMode(state);
         var src = getDeckVisualSrc(state, mode);
@@ -675,7 +784,8 @@
           drawDeckVisualAsset(state, image, mode);
           return true;
         }
-        return true;
+        drawPendingDeckVisual(state, mode);
+        return false;
       }
 
       function renderIcon(state) {
@@ -927,4 +1037,6 @@
   </script>
 </body>
 </html>
+
+
 

@@ -1,4 +1,4 @@
-# Bravent Ambient Sounds v1.1.1
+﻿# Bravent Ambient Sounds v1.1.2
 
 Ambient focus-sound plugin for Bravent Rhythm Deck.
 
@@ -44,4 +44,11 @@ Ambient focus-sound plugin for Bravent Rhythm Deck.
 - Custom volume
 - Background color
 - Background opacity
+
+
+## v1.1.2 update
+
+- Rebuilt Plugin Title, Action Icon, and Deck Visual assets with clean rounded lineal-color styling.
+- Added current-state visual fallback while deck PNG assets are still loading, preventing stale/previous-state key images.
+- Kept playback behavior unchanged: knob spin changes sound while paused and adjusts Ambient Sounds volume while playing.
 

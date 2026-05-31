@@ -1,4 +1,4 @@
-{
+﻿{
     "Actions":  [
                     {
                         "Icon":  "images/white-line-v2/actions/com-bravent-focussounds-key",
@@ -79,10 +79,10 @@
     "Name":  "Bravent Ambient Sounds",
     "Icon":  "images/white-line-v2/plugin-title",
     "CodePath":  "plugin/index.html",
-    "Description":  "White-noise and nature ambience player for water, fire, forest, lake, and sea-shore focus sessions.",
+    "Description":  "White-noise and nature ambience player with polished state-aware visuals for water, fire, forest, lake, and sea-shore focus sessions.",
     "Category":  "Bravent Ambient Sounds",
     "CategoryIcon":  "images/white-line-v2/plugin-title",
-    "Version":  "1.1.1",
+    "Version":  "1.1.2",
     "URL":  "https://bravent.co",
     "OS":  [
                {
@@ -98,4 +98,3 @@
                      "MinimumVersion":  "3.10.188.226"
                  }
 }
-
