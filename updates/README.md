@@ -24,9 +24,9 @@ When releasing a new plugin version:
 
 The Bravent Hub will automatically detect and prompt users to update.
 ### Bravent Ambient Sounds
-- Plugin ID: `com.bravent.focussounds.sdPlugin`
-- Short key: `ambient-sounds`
-- Channel: `stable`
-- Version: `v1.0.9`
-- Download: `updates/assets/com.bravent.focussounds-v1.0.9.sdPlugin`
-- SHA256: `9aba04f6eb1b11ddfef243a037a69d389295d282688705f5f45301fe468fb48e`
+- Plugin ID: com.bravent.focussounds.sdPlugin`r
+- Short key: mbient-sounds`r
+- Channel: stable`r
+- Version: 1.1.0`r
+- Download: updates/assets/com.bravent.focussounds-v1.1.0.sdPlugin`r
+- SHA256: $sha`r

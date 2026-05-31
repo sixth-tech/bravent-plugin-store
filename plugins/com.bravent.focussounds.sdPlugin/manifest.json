@@ -5,13 +5,13 @@
                         "Name":  "Ambient Sounds Key",
                         "States":  [
                                        {
-                                           "Image":  "images/deck-visual-special-lineal-v1/actions/ambient-key-idle",
+                                           "Image":  "images/deck-visual-ambient-state-v2/actions/raining-paused",
                                            "TitleAlignment":  "bottom",
                                            "FontSize":  "11",
                                            "FontStyle":  "Bold"
                                        },
                                        {
-                                           "Image":  "images/deck-visual-special-lineal-v1/actions/ambient-key-playing",
+                                           "Image":  "images/deck-visual-ambient-state-v2/actions/raining-playing",
                                            "TitleAlignment":  "bottom",
                                            "FontSize":  "11",
                                            "FontStyle":  "Bold"
@@ -41,13 +41,13 @@
                         "Name":  "Ambient Sounds Knob",
                         "States":  [
                                        {
-                                           "Image":  "images/deck-visual-special-lineal-v1/actions/ambient-knob-switch",
+                                           "Image":  "images/deck-visual-ambient-state-v2/actions/raining-selecting",
                                            "TitleAlignment":  "bottom",
                                            "FontSize":  "11",
                                            "FontStyle":  "Bold"
                                        },
                                        {
-                                           "Image":  "images/deck-visual-special-lineal-v1/actions/ambient-relaxed-person",
+                                           "Image":  "images/deck-visual-ambient-state-v2/actions/raining-playing",
                                            "TitleAlignment":  "bottom",
                                            "FontSize":  "11",
                                            "FontStyle":  "Bold"
@@ -58,7 +58,7 @@
                                         ],
                         "UserTitleEnabled":  false,
                         "SupportedInMultiActions":  true,
-                        "Tooltip":  "Press play/pause. Spin while paused to switch ambience; spin while playing to adjust Ambient volume.",
+                        "Tooltip":  "Press play/pause. Spin while paused to switch ambience; spin while playing to adjust Ambient volume. Playback continues across pages.",
                         "UUID":  "com.bravent.focussounds.knob",
                         "PropertyInspectorPath":  "propertyInspector/index.html",
                         "Settings":  {
@@ -82,7 +82,7 @@
     "Description":  "White-noise and nature ambience player for water, fire, forest, lake, and sea-shore focus sessions.",
     "Category":  "Bravent Ambient Sounds",
     "CategoryIcon":  "images/white-line-v2/plugin-title",
-    "Version":  "1.0.9",
+    "Version":  "1.1.0",
     "URL":  "https://bravent.co",
     "OS":  [
                {

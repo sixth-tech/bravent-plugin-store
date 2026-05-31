@@ -361,7 +361,7 @@
       border-radius: 12px;
       background: rgba(0, 0, 0, 0.24);
       padding: 8px 10px;
-      display: grid;
+      display: none;
       gap: 4px;
       color: rgba(247, 244, 239, 0.82);
       font-size: 10px;
@@ -379,7 +379,7 @@
   <section class="card hero">
     <div class="eyebrow">Bravent Ambient</div>
     <h1>Ambient Sounds</h1>
-    <p class="subtitle">White-noise and nature ambience for Rhythm Deck. Turn before play to choose a sound; turn while playing to adjust this plugin's volume.</p>
+    <p class="subtitle">White-noise and nature ambience for Rhythm Deck. It keeps playing when you move to another page.</p>
   </section>
 
   <section class="card stage">
@@ -456,7 +456,7 @@
       <input id="beepAtEnd" type="checkbox">
       <span>Beep at end</span>
     </label>
-    <div class="helper">Knob behavior: paused = turn to switch sounds; playing = turn to adjust Ambient Sounds volume only. Timer `0` means loop/continuous mode based on repeat setting.</div>
+    <div class="helper">Knob behavior: paused = turn to switch sounds; playing = turn to adjust Ambient Sounds volume only. With Auto repeat on, the selected ambience keeps looping across pages.</div>
   </section>
 
   <section class="card feedback">
@@ -474,7 +474,7 @@
       </div>
       <button id="mailBtn" type="button" class="ghost" style="width:auto;padding:8px 12px">Open Mail</button>
     </div>
-    <div class="tiny">Bravent All rights reserved 2026. · Bravent Hub Ambient Sounds© v1.0.9</div>
+    <div class="tiny">Bravent All rights reserved 2026. · Bravent Hub Ambient Sounds© v1.1.0</div>
     <div class="debug">
       <div id="debugEventLine">Event: -</div>
       <div id="debugPressLine">PressMs: -</div>

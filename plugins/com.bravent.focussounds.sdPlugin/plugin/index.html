@@ -17,6 +17,9 @@
 
       var HOLD_MS = 650;
       var VOLUME_STEP = 5;
+      var SELECTING_VISUAL_MS = 900;
+      var DECK_VISUAL_ROOT = "../images/deck-visual-ambient-state-v2/actions/";
+      var deckVisualCache = {};
 
       var SOUND_LIBRARY = [
         { id: "raining", name: "Raining", code: "RN", symbol: "R", color: "#4e8ed1", file: "Raining.mp3" },
@@ -212,6 +215,8 @@
             audio: null,
             audioSrc: "",
             isPlaying: false,
+            visible: false,
+            selectingUntil: 0,
             holdTimer: null,
             holdTriggered: false,
             keyDownAt: 0,
@@ -459,6 +464,7 @@
 
       function cycleSound(state) {
         state.settings.selectedSound = nextSoundId(state.settings.selectedSound);
+        state.selectingUntil = Date.now() + SELECTING_VISUAL_MS;
         state.lastHoldAt = Date.now();
         sendSettings(state.context, state.settings);
         applyIncomingSettings(state, state.settings);
@@ -476,6 +482,7 @@
           id = steps > 0 ? nextSoundId(id) : prevSoundId(id);
         }
         state.settings.selectedSound = id;
+        state.selectingUntil = Date.now() + SELECTING_VISUAL_MS;
         state.lastHoldAt = Date.now();
         sendSettings(state.context, state.settings);
         applyIncomingSettings(state, state.settings);
@@ -583,11 +590,82 @@
       }
 
       function renderAndPush(state) {
+        if (state.visible === false) {
+          return;
+        }
         renderIcon(state);
         sendStatusToInspector(state.context, statusPayload(state));
       }
 
+      function getDeckVisualMode(state) {
+        if (state.selectingUntil > Date.now()) {
+          return "selecting";
+        }
+        return state.isPlaying ? "playing" : "paused";
+      }
+
+      function getDeckVisualSrc(state, mode) {
+        var sound = findSound(state.settings.selectedSound) || SOUND_LIBRARY[0];
+        return DECK_VISUAL_ROOT + sound.id + "-" + mode + "@2x.png";
+      }
+
+      function drawDeckVisualAsset(state, image, mode) {
+        var canvas = document.getElementById("render");
+        var g = canvas.getContext("2d");
+        var W = 144;
+        canvas.width = W;
+        canvas.height = W;
+        g.clearRect(0, 0, W, W);
+        g.drawImage(image, 0, 0, W, W);
+
+        if (mode === "playing") {
+          roundRect(g, 36, 118, 72, 16, 8);
+          g.fillStyle = "rgba(20,24,61,0.72)";
+          g.fill();
+          g.font = "800 10px Segoe UI, Arial, sans-serif";
+          g.textAlign = "center";
+          g.textBaseline = "middle";
+          g.fillStyle = "#fddab0";
+          g.fillText("VOL " + String(Math.round(clamp(state.settings.volume, 0, 100))) + "%", W / 2, 126);
+        }
+
+        sendMessage({
+          event: "setImage",
+          context: state.context,
+          payload: {
+            image: canvas.toDataURL("image/png"),
+            target: 0
+          }
+        });
+        sendState(state.context, state.isPlaying ? 1 : 0);
+      }
+
+      function renderDeckVisualAsset(state) {
+        var mode = getDeckVisualMode(state);
+        var src = getDeckVisualSrc(state, mode);
+        var image = deckVisualCache[src];
+        if (image && image.complete && image.naturalWidth > 0) {
+          drawDeckVisualAsset(state, image, mode);
+          return true;
+        }
+        if (!image) {
+          image = new Image();
+          deckVisualCache[src] = image;
+          image.onload = function () {
+            var current = contexts.get(state.context);
+            if (current && current.visible !== false && getDeckVisualSrc(current, getDeckVisualMode(current)) === src) {
+              drawDeckVisualAsset(current, image, getDeckVisualMode(current));
+            }
+          };
+          image.src = src;
+        }
+        return false;
+      }
+
       function renderIcon(state) {
+        if (renderDeckVisualAsset(state)) {
+          return;
+        }
         var canvas = document.getElementById("render");
         var g = canvas.getContext("2d");
         var W = 144;
@@ -701,6 +779,23 @@
         contexts.delete(context);
       }
 
+      function hideOrCleanupContext(context) {
+        var state = contexts.get(context);
+        if (!state) {
+          return;
+        }
+        state.visible = false;
+        clearHoldDetection(state);
+        state.pressActive = false;
+        state.holdTriggered = false;
+        state.keyDownAt = 0;
+
+        if (isPlaybackActive(state)) {
+          return;
+        }
+        cleanupContext(context);
+      }
+
       function handleSendToPlugin(message) {
         var state = getContext(message.context);
         var outer = message.payload || {};
@@ -737,6 +832,7 @@
           case "willAppear":
             state = getContext(message.context);
             markEvent(state, eventName, message.payload);
+            state.visible = true;
             state.action = message.action || state.action;
             state.kind = isKnobAction(state.action) ? "knob" : "key";
             applyIncomingSettings(state, message.payload && message.payload.settings);
@@ -749,7 +845,7 @@
             renderAndPush(state);
             break;
           case "willDisappear":
-            cleanupContext(message.context);
+            hideOrCleanupContext(message.context);
             break;
           case "sendToPlugin":
             handleSendToPlugin(message);
@@ -830,6 +926,12 @@
       function startTicker() {
         setInterval(function () {
           contexts.forEach(function (state) {
+            if (state.selectingUntil > 0 && Date.now() >= state.selectingUntil) {
+              state.selectingUntil = 0;
+              if (state.visible !== false) {
+                renderAndPush(state);
+              }
+            }
             if (!state.isPlaying) {
               return;
             }
@@ -842,10 +944,10 @@
                   playEndBeep(state.settings.volume);
                 }
                 renderAndPush(state);
-              } else {
+              } else if (state.visible !== false) {
                 renderIcon(state);
               }
-            } else {
+            } else if (state.visible !== false) {
               renderIcon(state);
             }
           });

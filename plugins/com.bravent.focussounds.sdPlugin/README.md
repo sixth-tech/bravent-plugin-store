@@ -1,4 +1,4 @@
-﻿# Bravent Ambient Sounds v1.0.9
+﻿# Bravent Ambient Sounds v1.1.0
 
 Ambient focus-sound plugin for Bravent Rhythm Deck.
 
@@ -19,9 +19,20 @@ Ambient focus-sound plugin for Bravent Rhythm Deck.
 
 ### Knob action (`Ambient Sounds Knob`)
 
-- Press: play / pause
-- Spin while paused: switch sound
+- Press or touch: play / pause
+- Spin while paused: switch sound and show the selected sound icon
 - Spin while playing: adjust Ambient Sounds volume only, without changing the computer master volume
+
+## Page Behavior
+
+- Playback continues when you move to another Rhythm Deck page.
+- Auto repeat keeps looping after page change while Bravent Hub remains running.
+
+## Visual States
+
+- Each sound has its own paused icon.
+- Each sound has its own playing icon.
+- Each sound has its own selecting icon while changing ambience.
 
 ## Settings
 
@@ -33,5 +44,3 @@ Ambient focus-sound plugin for Bravent Rhythm Deck.
 - Custom volume
 - Background color
 - Background opacity
-
-
