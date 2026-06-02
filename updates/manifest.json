@@ -22,14 +22,27 @@
                         "name":  "Bravent Ambient Sounds",
                         "channels":  {
                                          "stable":  {
+                                                        "version":  "v1.1.5",
+                                                        "downloadUrl":  "https://raw.githubusercontent.com/sixth-tech/bravent-plugin-store/main/updates/assets/com.bravent.focussounds-v1.1.5.sdPlugin.zip",
+                                                        "sha256":  "d5376b6168a22b10dfa60cdd4f9968dcc4d0d4ff21b17107fc8077892dec336c",
+                                                        "publishedAt":  "2026-06-02"
+                                                    }
+                                     }
+                    },
+                    {
+                        "id":  "com.bravent.photoshopplus.sdPlugin",
+                        "key":  "photoshopplus",
+                        "name":  "Bravent Photoshop+",
+                        "channels":  {
+                                         "stable":  {
                                                         "version":  "v1.1.2",
-                                                        "downloadUrl":  "https://raw.githubusercontent.com/sixth-tech/bravent-plugin-store/main/updates/assets/com.bravent.focussounds-v1.1.2.sdPlugin",
-                                                        "sha256":  "3177cb39badd3cc1080023d1349b7bdcdf0763bd7257dbacfca3a142822c5e61",
-                                                        "publishedAt":  "2026-05-31"
+                                                        "downloadUrl":  "https://raw.githubusercontent.com/sixth-tech/bravent-plugin-store/main/updates/assets/com.bravent.photoshopplus-v1.1.2.sdPlugin.zip",
+                                                        "sha256":  "88657d16dee79a58c79a3117a4ebc67c6f1f0f531bd19222919270f9b24a667c",
+                                                        "publishedAt":  "2026-06-02"
                                                     }
                                      }
                     }
                 ],
-    "updated_at":  "2026-05-31T18:41:45+08:00",
+    "updated_at":  "2026-06-02T00:00:00+08:00",
     "api_version":  "1.0"
 }
