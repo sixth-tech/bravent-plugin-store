@@ -41,8 +41,47 @@
                                                         "publishedAt":  "2026-06-02"
                                                     }
                                      }
+                    },
+                    {
+                        "id":  "com.bravent.clockpro.sdPlugin",
+                        "key":  "clockpro",
+                        "name":  "Bravent Clock Pro",
+                        "channels":  {
+                                         "stable":  {
+                                                        "version":  "v1.0.0",
+                                                        "downloadUrl":  "https://raw.githubusercontent.com/sixth-tech/bravent-plugin-store/main/updates/assets/bravent-clock-pro-suite-v1/Bravent-Clock-Pro-RhythmDeck-v1.0.0.zip",
+                                                        "sha256":  "5c8daf769f6ac26ab57c0dea8ba55260090bb9a1078446633fa44e53456b71a0",
+                                                        "publishedAt":  "2026-06-03"
+                                                    }
+                                     }
+                    },
+                    {
+                        "id":  "com.bravent.clockminipro.sdPlugin",
+                        "key":  "clockminipro",
+                        "name":  "Bravent Clock Mini Pro",
+                        "channels":  {
+                                         "stable":  {
+                                                        "version":  "v1.0.0",
+                                                        "downloadUrl":  "https://raw.githubusercontent.com/sixth-tech/bravent-plugin-store/main/updates/assets/bravent-clock-pro-suite-v1/Bravent-Clock-Mini-Pro-RhythmDeck-v1.0.0.zip",
+                                                        "sha256":  "7e7775fd0c275daa1e19241186c688ab7b556a99baa31c2db46bc5be0f882e58",
+                                                        "publishedAt":  "2026-06-03"
+                                                    }
+                                     }
+                    },
+                    {
+                        "id":  "com.bravent.jianyingpro.sdPlugin",
+                        "key":  "jianyingpro",
+                        "name":  "Bravent Jianying / CapCut Pro",
+                        "channels":  {
+                                         "stable":  {
+                                                        "version":  "v2.2.2",
+                                                        "downloadUrl":  "https://raw.githubusercontent.com/sixth-tech/bravent-plugin-store/main/updates/assets/com.bravent.jianyingpro-v2.2.2.sdPlugin.zip",
+                                                        "sha256":  "b92c0cd0c2e0e7a98522bc45bc3444726fc0a8b965b10f521ccd1d56f51a1cbf",
+                                                        "publishedAt":  "2026-06-03"
+                                                    }
+                                     }
                     }
                 ],
-    "updated_at":  "2026-06-02T00:00:00+08:00",
+    "updated_at":  "2026-06-03T00:00:00+08:00",
     "api_version":  "1.0"
 }
